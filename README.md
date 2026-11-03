@@ -6,10 +6,10 @@
 
 ## Start here
 
-1. [Recovery instructions for an administrator](docs/EVAN-STAGING-RECOVERY.md) — inspection, build, controlled install, testing and rollback.
-2. [Build and rollback guide](docs/BUILD-AND-ROLLBACK.md) — source and shared-library compatibility; avoid replacing FreeSWITCH itself.
-3. [SDP verification](docs/SDP-VALIDATION.md) — what to check for OA1, OA0, mode-set, audio and payload types.
-4. [Read-only inspection helper](scripts/inspect_amrwb.sh) — no changes/restarts.
+1. [Original custom AMR-WB source](source/mod_amrwb.dual-v2.c) — OA0/OA1 implementation and codec negotiation changes.
+2. [Historical patch](source/mod_amrwb.dual-v2.patch) — relative to an earlier local build, not a clean upstream patch.
+3. [Example configurations](examples/) — OA1 and dual-offer experimental settings.
+4. [Build and rollback notes](docs/BUILD-AND-ROLLBACK.md) and [SDP checks](docs/SDP-VALIDATION.md) — optional reference for anyone restoring the module after an upgrade.
 
 ## Repository layout
 
