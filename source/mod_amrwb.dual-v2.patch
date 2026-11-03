@@ -1,0 +1,196 @@
+--- mod_amrwb.c.before-v2
++++ mod_amrwb.c
+@@ -215,78 +215,124 @@
+                 /* set the default mode just in case there's no "mode-set" FMTP param */
+                 context->enc_mode = globals.default_bitrate;
+ 
+-                /* Select originating AMR-WB packing.
+-
+-/*
+- * When offer-both=1, preserve the packing type of the
+- * registered AMR-WB implementation itself:
+- *
+- *   AMR-WB / Octet Aligned      -> OA1
+- *   AMR-WB / Bandwidth Efficient -> OA0
+- *
+- * Do not depend on RTP payload number because mod_sofia
+- * can dynamically assign PT values on the B-leg.
+- */
+-if (globals.offer_both &&
+-    codec->implementation &&
+-    codec->implementation->fmtp) {
+-
+-    if (strstr(codec->implementation->fmtp, "octet-align=1")) {
+-        switch_set_flag(context, AMRWB_OPT_OCTET_ALIGN);
+-    } else if (strstr(codec->implementation->fmtp, "octet-align=0")) {
+-        switch_clear_flag(context, AMRWB_OPT_OCTET_ALIGN);
+-    } else if (globals.force_oa) {
+-        switch_set_flag(context, AMRWB_OPT_OCTET_ALIGN);
+-    } else {
+-        switch_clear_flag(context, AMRWB_OPT_OCTET_ALIGN);
+-    }
+-
+-} else if (globals.force_oa) {
+-    switch_set_flag(context, AMRWB_OPT_OCTET_ALIGN);
+-} else {
+-    switch_clear_flag(context, AMRWB_OPT_OCTET_ALIGN);
+-}
++                /*
++                 * Select originating AMR-WB packing.
++                 *
++                 * When offer-both=1, preserve the packing type of the
++                 * registered AMR-WB implementation itself:
++                 *
++                 *   AMR-WB / Octet Aligned       -> OA1
++                 *   AMR-WB / Bandwidth Efficient -> OA0
++                 *
++                 * Do not depend on the RTP payload number because mod_sofia
++                 * can assign different dynamic PT values on the B-leg.
++                 */
++                if (globals.offer_both &&
++                    codec->implementation &&
++                    codec->implementation->fmtp) {
++
++                        if (strstr(codec->implementation->fmtp, "octet-align=1")) {
++                                switch_set_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                        } else if (strstr(codec->implementation->fmtp, "octet-align=0")) {
++                                switch_clear_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                        } else if (globals.force_oa) {
++                                switch_set_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                        } else {
++                                switch_clear_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                        }
++
++                } else if (globals.force_oa) {
++                        switch_set_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                } else {
++                        switch_clear_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                }
+ 
+                 if (codec->fmtp_in) {
+                         argc = switch_separate_string(codec->fmtp_in, ';', argv, (sizeof(argv) / sizeof(argv[0])));
++
+                         for (x = 0; x < argc; x++) {
+                                 char *data = argv[x];
+                                 char *arg;
++
+                                 while (*data && *data == ' ') {
+                                         data++;
+                                 }
++
+                                 if ((arg = strchr(data, '='))) {
+                                         *arg++ = '\0';
++
+                                         if (!strcasecmp(data, "octet-align")) {
++
++                                                /*
++                                                 * In dual-offer mode the registered
++                                                 * implementation determines OA/BE.
++                                                 * Do not let fmtp_in collapse both
++                                                 * implementations into the same mode.
++                                                 */
++                                                if (!globals.offer_both) {
++                                                        if (atoi(arg)) {
++                                                                switch_set_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                                                        } else {
++                                                                switch_clear_flag(context, AMRWB_OPT_OCTET_ALIGN);
++                                                        }
++                                                }
++
++                                        } else if (!strcasecmp(data, "mode-change-neighbor")) {
++
+                                                 if (atoi(arg)) {
+                                                         switch_set_flag(context, AMRWB_OPT_MODE_CHANGE_NEIGHBOR);
+                                                 }
++
+                                         } else if (!strcasecmp(data, "crc")) {
++
+                                                 if (atoi(arg)) {
+                                                         switch_set_flag(context, AMRWB_OPT_CRC);
+                                                 }
++
+                                         } else if (!strcasecmp(data, "robust-sorting")) {
++
+                                                 if (atoi(arg)) {
+                                                         switch_set_flag(context, AMRWB_OPT_ROBUST_SORTING);
+                                                 }
++
+                                         } else if (!strcasecmp(data, "interleaving")) {
++
+                                                 if (atoi(arg)) {
+                                                         switch_set_flag(context, AMRWB_OPT_INTERLEAVING);
+                                                 }
++
+                                         } else if (!strcasecmp(data, "mode-change-period")) {
++
+                                                 context->change_period = atoi(arg);
++
+                                         } else if (!strcasecmp(data, "ptime")) {
++
+                                                 context->ptime = (switch_byte_t) atoi(arg);
++
+                                         } else if (!strcasecmp(data, "channels")) {
++
+                                                 context->channels = (switch_byte_t) atoi(arg);
++
+                                         } else if (!strcasecmp(data, "maxptime")) {
++
+                                                 context->max_ptime = (switch_byte_t) atoi(arg);
++
+                                         } else if (!strcasecmp(data, "max-red")) {
++
+                                                 context->max_red = atoi(arg);
++
+                                         } else if (!strcasecmp(data, "mode-set")) {
++
+                                                 int y, m_argc;
+                                                 char *m_argv[SWITCH_AMRWB_MODES-1]; /* AMRWB has 9 modes */
+-                                                m_argc = switch_separate_string(arg, ',', m_argv, (sizeof(m_argv) / sizeof(m_argv[0])));
++
++                                                m_argc = switch_separate_string(
++                                                        arg,
++                                                        ',',
++                                                        m_argv,
++                                                        (sizeof(m_argv) / sizeof(m_argv[0]))
++                                                );
++
+                                                 for (y = 0; y < m_argc; y++) {
+                                                         context->enc_modes |= (1 << atoi(m_argv[y]));
+                                                         context->enc_mode = atoi(m_argv[y]);
+@@ -295,6 +341,23 @@
+                                 }
+                         }
+                 }
++
++                /*
++                 * Temporary diagnostic for validating OA/BE selection.
++                 * Remove after testing if desired.
++                 */
++                switch_log_printf(
++                        SWITCH_CHANNEL_SESSION_LOG(codec->session),
++                        SWITCH_LOG_NOTICE,
++                        "AMRWB INIT FINAL: offer_both=%d force_oa=%d ianacode=%d impl_fmtp=[%s] fmtp_in=[%s] selected=%s\n",
++                        globals.offer_both,
++                        globals.force_oa,
++                        codec->implementation ? codec->implementation->ianacode : -1,
++                        (codec->implementation && codec->implementation->fmtp)
++                                ? codec->implementation->fmtp : "(null)",
++                        codec->fmtp_in ? codec->fmtp_in : "(null)",
++                        switch_test_flag(context, AMRWB_OPT_OCTET_ALIGN) ? "OA1" : "OA0"
++                );
+ 
+                 if (context->enc_modes && !globals.mode_set_overwrite) {
+                         /* choose the highest mode (bitrate) for high audio quality. */
+@@ -595,9 +658,9 @@
+                                 if (!strcasecmp(var, "force-oa")) {
+                                         globals.force_oa = (switch_byte_t) atoi(val);
+                                 }
+-if (!strcasecmp(var, "offer-both")) {
+-globals.offer_both = (switch_byte_t) atoi(val);
+-}
++                                if (!strcasecmp(var, "offer-both")) {
++                                        globals.offer_both = (switch_byte_t) atoi(val);
++                                }
+                                 if (!strcasecmp(var, "mode-set-overwrite")) {
+                                         globals.mode_set_overwrite = (switch_byte_t) atoi(val);
+                                 }
