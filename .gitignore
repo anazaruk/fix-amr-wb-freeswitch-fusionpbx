@@ -1,0 +1,24 @@
+# Local build outputs and private evidence
+*.so
+*.o
+*.la
+*.lo
+*.log
+*.pcap
+*.pcapng
+*.wav
+*.mp3
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+.env.*
+__pycache__/
+*.pyc
+build/
+dist/
+output/
+private/
+evidence/
+secrets/
