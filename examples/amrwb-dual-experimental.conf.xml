@@ -1,0 +1,11 @@
+<configuration name="amrwb.conf" description="AMR-WB Codec Configuration">
+  <settings>
+    <param name="default-bitrate" value="8"/>
+    <param name="volte" value="0"/>
+    <param name="adjust-bitrate" value="0"/>
+    <!-- Experimental: advertises both AMR-WB packing variants in the codec module -->
+    <param name="offer-both" value="1"/>
+    <param name="force-oa" value="0"/>
+    <param name="mode-set-overwrite" value="0"/>
+  </settings>
+</configuration>
