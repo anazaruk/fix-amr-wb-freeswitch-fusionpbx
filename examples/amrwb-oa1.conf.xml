@@ -1,0 +1,12 @@
+<configuration name="amrwb.conf" description="AMR-WB Codec Configuration">
+  <settings>
+    <param name="default-bitrate" value="8"/>
+    <param name="volte" value="0"/>
+    <param name="adjust-bitrate" value="0"/>
+    <!-- This sets the preferred encoding packing; verify negotiated SDP -->
+    <param name="force-oa" value="1"/>
+    <!-- Custom historical extension; dual-v2 still registers both -->
+    <param name="offer-both" value="0"/>
+    <param name="mode-set-overwrite" value="0"/>
+  </settings>
+</configuration>
