@@ -1,0 +1,83 @@
+diff --git a/app/vars/var_edit.php b/app/vars/var_edit.php
+index f21e6ba..29bd731 100644
+--- a/app/vars/var_edit.php
++++ b/app/vars/var_edit.php
+@@ -55,6 +55,7 @@
+ 	$var_hostname = '';
+ 	$var_order = '';
+ 	$var_description = '';
++	$amrwb_action = '';
+ 
+ //set http values as php variables
+ 	if (!empty($_POST)) {
+@@ -66,6 +67,10 @@
+ 		$var_enabled = $_POST["var_enabled"];
+ 		$var_order = trim($_POST["var_order"]);
+ 		$var_description = trim($_POST["var_description"]);
++		$amrwb_action = $_POST['amrwb_action'] ?? '';
++		if (!in_array($amrwb_action, ['', 'reload', 'restart'], true)) {
++			$amrwb_action = '';
++		}
+ 
+ 		if (!empty($_POST["var_category_other"])) {
+ 			$var_category = trim($_POST["var_category_other"]);
+@@ -92,6 +97,9 @@
+ 			$msg = '';
+ 			if (empty($var_category)) { $msg .= $text['message-required'].$text['label-category']."<br>\n"; }
+ 			if (empty($var_name)) { $msg .= $text['message-required'].$text['label-name']."<br>\n"; }
++			if ($amrwb_action !== '' && ($var_name !== 'amrwb_force_oa' || !in_array($var_value, ['0', '1'], true))) {
++				$msg .= "AMR-WB packing must be 0 (OA0) or 1 (OA1).<br>\n";
++			}
+ 			//if (empty($var_value)) { $msg .= $text['message-required'].$text['label-value']."<br>\n"; }
+ 			//if (empty($var_command)) { $msg .= $text['message-required'].$text['label-command']."<br>\n"; }
+ 			//if (empty($var_enabled)) { $msg .= $text['message-required'].$text['label-enabled']."<br>\n"; }
+@@ -147,6 +155,38 @@
+ 					//synchronize the configuration
+ 						save_var_xml();
+ 
++					//apply the AMR-WB packing selection
++						if ($amrwb_action !== '' && $var_name === 'amrwb_force_oa') {
++							$reload_xml_response = event_socket::api('reloadxml');
++
++							if ($amrwb_action === 'restart') {
++								event_socket::api('fsctl shutdown restart');
++								if ($reload_xml_response !== false) {
++									message::add('AMR-WB was saved and the FreeSWITCH restart was requested.', 'positive', 10000);
++								}
++								else {
++									message::add('AMR-WB was saved, but the FreeSWITCH restart could not be requested.', 'negative', 10000);
++								}
++							}
++							else {
++								$reload_module_response = event_socket::api('reload -f mod_amrwb');
++								$module_exists_response = event_socket::api('module_exists mod_amrwb');
++								$module_is_loaded = stripos((string) $module_exists_response, 'true') !== false;
++								$reload_failed = $reload_module_response === false || stripos((string) $reload_module_response, '-ERR') !== false;
++
++								if ($reload_xml_response !== false && !$reload_failed && $module_is_loaded) {
++									$packing = $var_value === '1' ? 'OA1 (octet-aligned)' : 'OA0 (bandwidth-efficient)';
++									message::add('AMR-WB applied: '.$packing.'. mod_amrwb was reloaded.', 'positive', 10000);
++								}
++								else {
++									message::add('AMR-WB was saved, but mod_amrwb did not reload successfully. Use Restart FreeSWITCH.', 'negative', 10000);
++								}
++							}
++
++							header('Location: var_edit.php?id='.urlencode($var_uuid));
++							exit;
++						}
++
+ 					//redirect
+ 						header("Location: vars.php");
+ 						exit;
+@@ -193,6 +233,10 @@
+ 	echo "	<div class='heading'><b>".$text['header-variable']."</b></div>\n";
+ 	echo "	<div class='actions'>\n";
+ 	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'vars.php']);
++	if ($action === 'update' && $var_name === 'amrwb_force_oa') {
++		echo button::create(['type'=>'submit','label'=>'SAVE & RELOAD AMR-WB','icon'=>'rotate','name'=>'amrwb_action','value'=>'reload','id'=>'btn_reload_amrwb','title'=>'Save and reload AMR-WB','style'=>'margin-right: 15px;']);
++		echo button::create(['type'=>'submit','label'=>'RESTART FREESWITCH','icon'=>'power-off','name'=>'amrwb_action','value'=>'restart','id'=>'btn_restart_freeswitch','title'=>'Restart FreeSWITCH','style'=>'margin-right: 15px;','onclick'=>"return confirm('Restart FreeSWITCH now?');"]);
++	}
+ 	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save']);
+ 	echo "	</div>\n";
+ 	echo "	<div style='clear: both;'></div>\n";

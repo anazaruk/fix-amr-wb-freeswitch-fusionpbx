@@ -52,3 +52,9 @@ This first means the module is missing from the directory the runtime expects. I
 ## License
 
 Historical FreeSWITCH-derived source: **MPL-1.1** with original notices preserved. Other repository documentation and helper scripts are also offered under MPL-1.1. Third-party decoder/encoder libraries are not bundled; check their own licenses and applicable patents.
+
+## FusionPBX integration
+
+The optional [FusionPBX UI patch](fusionpbx/amrwb-fusionpbx-ui.patch) adds save/reload and restart actions to the existing `amrwb_force_oa` variable editor. Run `sh fusionpbx/install-amrwb-fusionpbx-ui.sh /var/www/fusionpbx` on a compatible installation. The installer checks patch applicability, backs up the editor and validates PHP syntax.
+
+A FreeSWITCH 1.10.12 test build (core commit `ba840f2c57`) passed shared-library resolution and live OA0 → OA1 → OA0 codec registration checks. The FusionPBX patch passed a dry run and PHP lint, and both buttons rendered in a server-side check. Authenticated form submission and end-to-end SIP/RTP calls remain to be validated. See [SDP validation](docs/SDP-VALIDATION.md).
