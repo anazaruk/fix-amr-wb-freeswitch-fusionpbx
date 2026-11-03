@@ -683,29 +683,50 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_amrwb_load)
         switch_console_set_complete("add amrwb_debug off");
 #endif
 
-        SWITCH_ADD_CODEC(codec_interface, "AMR-WB / Octet Aligned");
-
-        default_fmtp_oa = generate_fmtp(pool, 1);
-
-        switch_core_codec_add_implementation(pool, codec_interface,
-                                                                                 SWITCH_CODEC_TYPE_AUDIO, 100, "AMR-WB", default_fmtp_oa,
-                                                                                 16000, 16000, 23850, 20000, 320, 640, 0, 1, 1,
-                                                                                 switch_amrwb_init, switch_amrwb_encode, switch_amrwb_decode, switch_amrwb_destroy);
-#ifndef AMRWB_PASSTHROUGH
-        codec_interface->implementations->codec_control = switch_amrwb_control;
+        /*
+         * Register only the codec packing formats selected by configuration.
+         * Previously both implementations were always registered, even with
+         * offer-both=0; the flag then influenced init only, so SDP could still
+         * advertise an unwanted packing format.
+         *
+         * offer-both=1: OA1 and BE/OA0.
+         * offer-both=0, force-oa=1: OA1 only.
+         * offer-both=0, force-oa=0: BE/OA0 only.
+         *
+         * In pass-through builds globals are unavailable: register both
+         * formats, as the historical code did.
+         */
+#ifdef AMRWB_PASSTHROUGH
+        if (1) {
+#else
+        if (globals.offer_both || globals.force_oa) {
 #endif
-
-        SWITCH_ADD_CODEC(codec_interface, "AMR-WB / Bandwidth Efficient");
-
-        default_fmtp_be = generate_fmtp(pool, 0);
-
-        switch_core_codec_add_implementation(pool, codec_interface,
-                                                                                 SWITCH_CODEC_TYPE_AUDIO, 110, "AMR-WB", default_fmtp_be,
-                                                                                 16000, 16000, 23850, 20000, 320, 640, 0, 1, 1,
-                                                                                 switch_amrwb_init, switch_amrwb_encode, switch_amrwb_decode, switch_amrwb_destroy);
+                SWITCH_ADD_CODEC(codec_interface, "AMR-WB / Octet Aligned");
+                default_fmtp_oa = generate_fmtp(pool, 1);
+                switch_core_codec_add_implementation(pool, codec_interface,
+                        SWITCH_CODEC_TYPE_AUDIO, 100, "AMR-WB", default_fmtp_oa,
+                        16000, 16000, 23850, 20000, 320, 640, 0, 1, 1,
+                        switch_amrwb_init, switch_amrwb_encode, switch_amrwb_decode, switch_amrwb_destroy);
 #ifndef AMRWB_PASSTHROUGH
-        codec_interface->implementations->codec_control = switch_amrwb_control;
+                codec_interface->implementations->codec_control = switch_amrwb_control;
 #endif
+        }
+
+#ifdef AMRWB_PASSTHROUGH
+        if (1) {
+#else
+        if (globals.offer_both || !globals.force_oa) {
+#endif
+                SWITCH_ADD_CODEC(codec_interface, "AMR-WB / Bandwidth Efficient");
+                default_fmtp_be = generate_fmtp(pool, 0);
+                switch_core_codec_add_implementation(pool, codec_interface,
+                        SWITCH_CODEC_TYPE_AUDIO, 110, "AMR-WB", default_fmtp_be,
+                        16000, 16000, 23850, 20000, 320, 640, 0, 1, 1,
+                        switch_amrwb_init, switch_amrwb_encode, switch_amrwb_decode, switch_amrwb_destroy);
+#ifndef AMRWB_PASSTHROUGH
+                codec_interface->implementations->codec_control = switch_amrwb_control;
+#endif
+        }
         /* indicate that the module should continue to be loaded */
         return SWITCH_STATUS_SUCCESS;
 }
