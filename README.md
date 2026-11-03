@@ -22,7 +22,7 @@
 | `experimental/patch_amrwb_1_10_9.py` | Separate, **experimental** no-`mode-set` source generator for exact 1.10.9 input |
 | `experimental/mod_amrwb_no_modeset_xrmx.c` | Separate historical no-`mode-set` experiment, **not** the OA dual-v2 source |
 
-**Important:** The dual-v2 source registers two AMR-WB implementations unconditionally; `offer-both=0` is **not** guaranteed to remove an OA0 entry from SDP. Do not assume the setting means “offer OA1 only.” Confirm actual offer and answer in a SIP trace. The experimental no-`mode-set` script and C file are **different approaches** and must not be mixed into the dual-v2 build without review.
+**Important:** A source-level fix now registers OA1 only when `offer-both=0; force-oa=1`, OA0 only when both are `0`, and both formats when `offer-both=1` (for encoder/decoder builds). This is **not yet validated against a running FreeSWITCH build**; confirm actual offer and answer in a SIP trace. See [codec registration regression matrix](docs/CODEC-REGISTRATION-REGRESSION.md). The experimental no-`mode-set` script and C file are **different approaches** and must not be mixed into the dual-v2 build without review.
 
 ## Typical symptom
 
